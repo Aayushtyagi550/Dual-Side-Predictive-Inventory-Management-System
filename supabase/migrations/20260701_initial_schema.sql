@@ -81,19 +81,24 @@ ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sales_history ENABLE ROW LEVEL SECURITY;
 
 -- Profiles Policies
+DROP POLICY IF EXISTS "Allow authenticated users to read profiles" ON profiles;
 CREATE POLICY "Allow authenticated users to read profiles"
     ON profiles FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Allow users to insert their own profile" ON profiles;
 CREATE POLICY "Allow users to insert their own profile"
     ON profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Allow users to update their own profile" ON profiles;
 CREATE POLICY "Allow users to update their own profile"
     ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
 
 -- Products Policies
+DROP POLICY IF EXISTS "Allow authenticated users to view products catalog" ON products;
 CREATE POLICY "Allow authenticated users to view products catalog"
     ON products FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Allow suppliers to manage their own products" ON products;
 CREATE POLICY "Allow suppliers to manage their own products"
     ON products FOR ALL TO authenticated
     USING (
@@ -104,11 +109,13 @@ CREATE POLICY "Allow suppliers to manage their own products"
     );
 
 -- Orders Policies
+DROP POLICY IF EXISTS "Allow users to read their own placed/received orders" ON orders;
 CREATE POLICY "Allow users to read their own placed/received orders"
     ON orders FOR SELECT TO authenticated
     USING (auth.uid() = retailer_id OR auth.uid() = supplier_id);
 
 -- Order Items Policies
+DROP POLICY IF EXISTS "Allow users to read order items of their own orders" ON order_items;
 CREATE POLICY "Allow users to read order items of their own orders"
     ON order_items FOR SELECT TO authenticated
     USING (
@@ -120,6 +127,7 @@ CREATE POLICY "Allow users to read order items of their own orders"
     );
 
 -- Sales History Policies
+DROP POLICY IF EXISTS "Allow retailers to manage their own sales history" ON sales_history;
 CREATE POLICY "Allow retailers to manage their own sales history"
     ON sales_history FOR ALL TO authenticated
     USING (
