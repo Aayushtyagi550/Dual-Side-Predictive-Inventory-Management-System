@@ -106,16 +106,42 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signInWithPassword: async (email: string, password: string, selectedRole: UserRole) => {
     set({ loading: true, error: null });
     try {
-      const { data: { session }, error } = await supabase.auth.signInWithPassword({
+      let session: Session | null = null;
+      let user: User | null = null;
+
+      // 1. Attempt to sign in
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
-      if (!session) throw new Error('Failed to retrieve authentication session.');
+      if (signInError) {
+        // 2. If login fails (user does not exist), automatically register/sign up!
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-      const user = session.user;
+        if (signUpError) throw signUpError;
 
+        session = signUpData.session;
+        user = signUpData.user;
+
+        if (!session && user) {
+          // Email confirmation is required by Supabase Auth settings
+          set({ loading: false, error: 'Account created! Please check your email to confirm registration, or sign in if already confirmed.' });
+          return { success: false, error: 'Confirmation email sent.' };
+        }
+      } else {
+        session = signInData.session;
+        user = signInData.user;
+      }
+
+      if (!session || !user) {
+        throw new Error('Failed to retrieve authentication session.');
+      }
+
+      // 3. Fetch or create profile
       const { data: existingProfile, error: profileFetchError } = await supabase
         .from('profiles')
         .select('*')
